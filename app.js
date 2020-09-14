@@ -21,7 +21,8 @@ const scrapeSite = () => new Promise(async (resolve, reject) => {
     // Fetch Details of ads
     const limit = pLimit(5);
     const promises = [];
-    for (let i = 0; i < productsLinks.length; i++) {
+    // for (let i = 0; i < productsLinks.length; i++) {
+    for (let i = 0; i < 200; i++) {
       promises.push(limit(() => fetchProductsDetails(i)));
     }
     await Promise.all(promises);
@@ -52,7 +53,8 @@ const fetchProductsLinks = () => new Promise(async (resolve, reject) => {
     console.log(`Number of Pages found for Dealer: ${numberOfPages}`);
     await page.close();
 
-    for (let i = 1; i <= numberOfPages; i++) {
+    // for (let i = 1; i <= numberOfPages; i++) {
+    for (let i = 1; i <= 20; i++) {
       console.log(`Fetching Ads Links from page: ${i}/${numberOfPages}`);
       page = await pupHelper.launchPage(browser);
       await page.goto(`${dealerLink}p/${i}`, {timeout: 0, waitUntil: 'networkidle2'});
