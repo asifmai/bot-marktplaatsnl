@@ -19,10 +19,9 @@ const scrapeSite = () => new Promise(async (resolve, reject) => {
     await fetchProductsLinks();
 
     // Fetch Details of ads
-    const limit = pLimit(5);
+    const limit = pLimit(1);
     const promises = [];
-    // for (let i = 0; i < productsLinks.length; i++) {
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < productsLinks.length; i++) {
       promises.push(limit(() => fetchProductsDetails(i)));
     }
     await Promise.all(promises);
@@ -53,11 +52,11 @@ const fetchProductsLinks = () => new Promise(async (resolve, reject) => {
     console.log(`Number of Pages found for Dealer: ${numberOfPages}`);
     await page.close();
 
-    // for (let i = 1; i <= numberOfPages; i++) {
-    for (let i = 1; i <= 20; i++) {
+    for (let i = 1; i <= numberOfPages; i++) {
       console.log(`Fetching Ads Links from page: ${i}/${numberOfPages}`);
       page = await pupHelper.launchPage(browser);
-      await page.goto(`${dealerLink}p/${i}`, {timeout: 0, waitUntil: 'networkidle2'});
+      const resp = await page.goto(`${dealerLink}p/${i}`, {timeout: 0, waitUntil: 'networkidle2'});
+      console.log(resp.status());
       await page.waitForSelector('ul.mp-Listings');
       let pageLinks = await pupHelper.getAttrMultiple('ul.mp-Listings > li.mp-Listing > a', 'href', page);
       pageLinks = pageLinks.map(pl => 'https://www.marktplaats.nl' + pl);
@@ -83,7 +82,8 @@ const fetchProductsDetails = (prodIdx) => new Promise(async (resolve, reject) =>
     const product = {};
     console.log(`${prodIdx+1}/${productsLinks.length} - Fetching Ad Details [${productsLinks[prodIdx]}]...`);
     page = await pupHelper.launchPage(browser);
-    await page.goto(productsLinks[prodIdx], {timeout: 0, waitUntil: 'networkidle2'});
+    const resp = await page.goto(productsLinks[prodIdx], {timeout: 0, waitUntil: 'networkidle2'});
+    console.log(resp.status());
     await page.waitForSelector('#content');
     const isCar = await page.$('section.listing');
 
@@ -112,6 +112,8 @@ const fetchProductsDetails = (prodIdx) => new Promise(async (resolve, reject) =>
       product.images = await pupHelper.getAttrMultiple('#vip-image-viewer > .image > img', 'src', page);
       product.images = product.images.map(img => 'https:' + img);
       product.phone = '';
+
+      await clearSignInBox(page);
       
       // const hasPhoneButton = await page.$('.seller-block .contact-options-mobile button.mp-Button');
       const hasPhoneButton = await page.$('aside button[title="Toon telefoonnummer"]');
@@ -127,7 +129,6 @@ const fetchProductsDetails = (prodIdx) => new Promise(async (resolve, reject) =>
           product[key] = product[key].replace(/\"/gi, "'");
         } 
       }
-      console.log(product);
     
       products.push(product);
     } else {
@@ -226,6 +227,25 @@ const saveToCsv = () => new Promise(async (resolve, reject) => {
     reject(error);
   }
 });
+
+const clearSignInBox = (page) => new Promise(async (resolve, reject) => {
+  try {
+    const singInBoxDisplay = await page.evaluate(() => {
+      const elm = document.querySelector('#inloggenDialog');
+      return window.getComputedStyle(elm).getPropertyValue('display');
+    })
+    if (singInBoxDisplay != 'none') {
+      await page.click('#inloggenDialog span.close');
+      await page.waitFor(1000);
+    }
+    
+    resolve(true);
+  } catch (error) {
+    console.log(`clearSignInBox Error: ${error}`);
+    reject(error);
+  }
+});
+
 
 (async () => {
   await scrapeSite();
