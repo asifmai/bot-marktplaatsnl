@@ -19,7 +19,7 @@ const scrapeSite = () => new Promise(async (resolve, reject) => {
     await fetchProductsLinks();
 
     // Fetch Details of ads
-    const limit = pLimit(1);
+    const limit = pLimit(5);
     const promises = [];
     for (let i = 0; i < productsLinks.length; i++) {
       promises.push(limit(() => fetchProductsDetails(i)));
@@ -105,10 +105,12 @@ const fetchProductsDetails = (prodIdx) => new Promise(async (resolve, reject) =>
       product.options = await getCellVal('Opties:', specs);
       product.options = product.options.replace(/\n/gi, ' | ');
       product.licensePlateNumber = await getCellVal('Kenteken:', specs);
-      product.apkDate = await getCellVal('APK tot:');
+      product.apkDate = await getCellVal('APK tot:', specs);
+      product.enginePower = await getCellVal('Vermogen:', specs);
 
       product.customer = await pupHelper.getTxt('h2.name', page);
       product.location = await pupHelper.getTxt('#vip-seller-location > h3 > .name', page);
+      product.content = await pupHelper.getTxt('#vip-ad-description', page);
       product.images = await pupHelper.getAttrMultiple('#vip-image-viewer > .image > img', 'src', page);
       product.images = product.images.map(img => 'https:' + img);
       product.phone = '';
@@ -182,7 +184,7 @@ const saveToCsv = () => new Promise(async (resolve, reject) => {
   try {
     console.log("Saving to csv...");
     const fileName = `results ${moment().format('MM-DD-YYYY HH-mm')}.csv`;
-    const csvHeader = '"URL","Title","MakeModel","Year","Body Type","Fuel Type","Mileage","Transmission","Price","Engine Capacity","Options","License Plate Number","APK Date","Customer Name","Location","Phone Number","Image 1","Image 2","Image 3","Image 4","Image 5","Image 6","Image 7","Image 8","Image 9","Image 10","Image 11","Image 12","Image 13","Image 14"\r\n';
+    const csvHeader = '"URL","Title","MakeModel","Year","Body Type","Fuel Type","Mileage","Transmission","Price","Engine Capacity","Options","License Plate Number","APK Date","Engine Power","Customer Name","Location","Content","Phone Number","Image 1","Image 2","Image 3","Image 4","Image 5","Image 6","Image 7","Image 8","Image 9","Image 10","Image 11","Image 12","Image 13","Image 14"\r\n';
     fs.writeFileSync(fileName, csvHeader);
 
     for (let i = 0; i < products.length; i++) {
@@ -200,8 +202,10 @@ const saveToCsv = () => new Promise(async (resolve, reject) => {
       csvLine += `,"${products[i].options}"`;
       csvLine += `,"${products[i].licensePlateNumber}"`;
       csvLine += `,"${products[i].apkDate}"`;
+      csvLine += `,"${products[i].enginePower}"`;
       csvLine += `,"${products[i].customer}"`;
       csvLine += `,"${products[i].location}"`;
+      csvLine += `,"${products[i].content}"`;
       csvLine += `,"${products[i].phone}"`;
       csvLine +=  products[i].images[0] ? `,"${products[i].images[0]}"` : ',""';
       csvLine +=  products[i].images[1] ? `,"${products[i].images[1]}"` : ',""';
